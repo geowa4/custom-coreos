@@ -1,0 +1,38 @@
+{
+  "variables": {
+    "aws_region": "{{env `AWS_REGION`}}",
+    "base_ami": "{{env `BASE_AMI`}}",
+    "logging_host": "{{env `LOGGING_HOST`}}",
+    "logging_port": "{{env `LOGGING_PORT`}}"
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "region": "{{user `aws_region`}}",
+    "source_ami": "{{user `base_ami`}}",
+    "instance_type": "c4.2xlarge",
+    "ssh_username": "core",
+    "ami_name": "custom-coreos {{timestamp}}"
+  }],
+  "provisioners": [{
+    "type": "file",
+    "source": "units",
+    "destination": "/tmp"
+  }, {
+    "type": "file",
+    "source": "drop-ins",
+    "destination": "/tmp"
+  }, {
+    "type": "file",
+    "source": "users",
+    "destination": "/tmp"
+  }, {
+    "type": "shell",
+    "environment_vars": [
+      "AWS_REGION={{user `aws_region`}}",
+      "LOGGING_HOST={{user `logging_host`}}",
+      "LOGGING_PORT={{user `logging_port`}}"
+    ],
+    "execute_command": "{{ .Vars }} sudo -E bash '{{ .Path }}'",
+    "script": "provisioners/config.sh"
+  }]
+}

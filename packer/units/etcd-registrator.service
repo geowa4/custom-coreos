@@ -1,0 +1,27 @@
+[Unit]
+Description=Gliderlabs Registrator
+After=flanneld.service docker.service skydns.service
+
+[Service]
+EnvironmentFile=/etc/environment
+EnvironmentFile=/etc/environment_cluster
+Restart=always
+RestartSec=3s
+ExecStartPre=/usr/bin/systemctl is-active flanneld.service docker.service skydns.service
+ExecStartPre=-/usr/bin/docker rm -f etcd-registrator
+ExecStartPre=/usr/bin/docker pull gliderlabs/registrator
+ExecStart=/usr/bin/docker run --name etcd-registrator \
+  --dns ${COREOS_PRIVATE_IPV4} \
+  -v /var/run/docker.sock:/tmp/docker.sock \
+  gliderlabs/registrator \
+  -internal \
+  -ttl 30 \
+  -ttl-refresh 10 \
+  -resync 3600 \
+  skydns2://${COREOS_PRIVATE_IPV4}:2379/local/skydns
+ExecStartPost=
+ExecStop=/usr/bin/docker stop etcd-registrator
+ExecStopPost=
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,29 @@
+[Unit]
+Description=SkyDNS
+After=flanneld.service docker.service
+
+[Service]
+Restart=always
+RestartSec=3s
+EnvironmentFile=/etc/environment
+ExecStartPre=/usr/bin/systemctl is-active flanneld.service docker.service
+ExecStartPre=-/usr/bin/docker rm -f skydns
+ExecStartPre=/usr/bin/docker pull skynetservices/skydns
+ExecStart=/bin/bash -c " \
+  docker run \
+  --name skydns \
+  --net host \
+  -p 53:53 \
+  -p 53:53/udp \
+  -e ETCD_MACHINES=http://${COREOS_PRIVATE_IPV4}:2379 \
+  -e SKYDNS_NAMESERVERS=$(grep nameserver /etc/resolv.conf | awk '{print $2}'):53 \
+  -e SKYDNS_ADDR=0.0.0.0:53 \
+  -e SKYDNS_DOMAIN=skydns.local \
+  skynetservices/skydns \
+  "
+ExecStartPost=
+ExecStop=/usr/bin/docker stop skydns
+ExecStopPost=
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,26 @@
+[Unit]
+Description=fluentd
+After=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+EnvironmentFile=/etc/environment_cluster
+Restart=always
+RestartSec=3s
+ExecStartPre=/usr/bin/systemctl is-active flanneld.service docker.service
+ExecStartPre=-/usr/bin/docker rm -f fluentd
+ExecStartPre=/usr/bin/docker pull geowa4/fluentd
+ExecStart=/usr/bin/docker run --name fluentd \
+  -e ES_SCHEME=https \
+  -e ES_HOST=${LOGGING_HOST} \
+  -e ES_PORT=${LOGGING_PORT} \
+  -p 24224:24224 \
+  -p 24220:24220 \
+  -h %H \
+  geowa4/fluentd
+ExecStartPost=
+ExecStop=/usr/bin/docker stop fluentd
+ExecStopPost=
+
+[Install]
+WantedBy=multi-user.target
